@@ -1,4 +1,4 @@
-"""This program sends email stock alerts.
+"""This program send email stock alerts.
 Whenever the stock gets below a certain price OR is trending downward,
 an alert is sent, along with a few news clips about that stock."""
 
