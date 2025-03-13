@@ -85,7 +85,7 @@ if latest_low_price < 23:
 ## STEP 2: Use https://newsapi.org
 # Instead of printing ("Get News"), actually get the first 3 news pieces for the COMPANY_NAME. 
 
-    news_url = f'https://newsapi.org/v2/everything?q={COMPANY_NAME}&from=2024-09-13&sortBy=popularity&apiKey={NEWS_API_KEY}'
+    news_url = f'https://newsapi.org/v2/everything?q={COMPANY_NAME}&from=2025-03-01&sortBy=popularity&apiKey={NEWS_API_KEY}'
 
     response = requests.get(news_url)
     data = response.json()  # Call the method
