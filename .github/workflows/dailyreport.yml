@@ -44,7 +44,7 @@ jobs:
           APP_EMAIL_PASSWORD: $ {{secrets.APP_EMAIL_PASSWORD}}
           TO_EMAIL: $ {{secrets.TO_EMAIL}}
           MY_EMAIL: $ {{secrets.MY_EMAIL}}
-        run: python .github/workflows/Stock_email_main.py
+        run: python .github/workflows/Stock_email_test_email.py
       - name: Upload log file
         uses: actions/upload-artifact@v4
         if: always()
