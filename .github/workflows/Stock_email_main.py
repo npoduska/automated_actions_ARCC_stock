@@ -62,7 +62,7 @@ else:
     print("Trending Down")
     trending_condition = "Trending Downward"
 
-if latest_low_price < 23:
+if latest_low_price < 21:
     print("GET NEWS!")
     logging.info("GETTING THE NEWS!")
     # client = Client(account_sid, auth_token)
