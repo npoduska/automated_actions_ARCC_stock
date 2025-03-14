@@ -1,5 +1,5 @@
 """
-Simple script to test Gmail authentication and sending emails from GitHub Actions
+Simple script to test Zoho Mail authentication and sending emails from GitHub Actions
 """
 
 import os
@@ -7,27 +7,30 @@ import smtplib
 import sys
 
 # Get environment variables
-my_email = os.environ.get('MY_EMAIL')
+zoho_email = os.environ.get('ZOHO_EMAIL')
 to_email = os.environ.get('TO_EMAIL')
-app_password = os.environ.get('APP_EMAIL_PASSWORD')
+zoho_password = os.environ.get('ZOHO_PASSWORD')
 
-print("Starting email test")
-print(f"Using email: {my_email[:3]}...{my_email[-10:]}")
-print(f"Sending to: {to_email[:3]}...{to_email[-10:]}")
+print("Starting Zoho Mail test")
+print(f"Using Zoho email: {zoho_email}")
+print(f"Sending to: {to_email}")
 
 try:
-    # Connect to Gmail's SMTP server
-    print("Connecting to SMTP server...")
-    with smtplib.SMTP_SSL('smtp.gmail.com', port=465) as connection:
+    # Connect to Zoho's SMTP server
+    print("Connecting to Zoho SMTP server...")
+    with smtplib.SMTP("smtp.zoho.com", port=587) as connection:
+        # Start TLS encryption (required for Zoho)
+        connection.starttls()
+        
         # Attempt to login
         print("Attempting login...")
-        connection.login(user=my_email, password=app_password)
+        connection.login(user=zoho_email, password=zoho_password)
         print("Login successful!")
         
         # Create and send a test email
-        email_message = 'Subject: GitHub Actions Test\n\nThis is a test email from GitHub Actions.'
+        email_message = 'Subject: GitHub Actions Test via Zoho\n\nThis is a test email from GitHub Actions using Zoho Mail.'
         print("Sending email...")
-        connection.sendmail(from_addr=my_email, to_addrs=to_email, msg=email_message)
+        connection.sendmail(from_addr=zoho_email, to_addrs=to_email, msg=email_message)
         print("Email sent successfully!")
         
 except Exception as e:
