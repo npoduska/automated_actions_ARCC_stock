@@ -19,6 +19,10 @@ NEWS_API_KEY= os.environ.get('NEWS_API_KEY')
 # to_email = TO_EMAIL
 # app_password= APP_EMAIL_PASSWORD
 
+#Verify that environment variables are being loaded
+print(f"Email: {my_email}")
+print(f"Password: {'*' * len(app_password) if app_password else 'Not set'}")
+
 print("check your email now.")
 # Then use logging instead of print throughout your script
 logging.info("Starting stock check...")
@@ -86,14 +90,26 @@ if latest_low_price < 23 or volume_change > 70:
 
 # Connect to Zoho's SMTP server using SSL
     print("Connecting to Zoho SMTP server via SSL...")
+
+    try:
+    connection = smtplib.SMTP_SSL("smtp.zoho.com", port=465, timeout=30)
+    print("Connected to SMTP server")
+    connection.login(user=my_email, password=app_password)
+    print("Login successful")
+    except smtplib.SMTPAuthenticationError as e:
+    print(f"Authentication error: {e}")
+    logging.error(f"SMTP Authentication Error: {e}")
+except Exception as e:
+    print(f"Connection error: {type(e).__name__}: {e}")
+    logging.error(f"SMTP Connection Error: {type(e).__name__}: {e}")
     
-    with smtplib.SMTP_SSL("smtp.zoho.com", port=465) as connection:
+    """with smtplib.SMTP_SSL("smtp.zoho.com", port=465) as connection:
         connection.login(user= my_email  , password= app_password)
         try:
             connection.sendmail(from_addr= my_email, to_addrs= to_email, msg= email_message)
         except UnicodeEncodeError:
             email_message = email_message.encode('ascii',errors='ignore')
-            connection.sendmail(from_addr= my_email, to_addrs= to_email, msg= email_message)
+            connection.sendmail(from_addr= my_email, to_addrs= to_email, msg= email_message)"""
     print("check your email now.")
     logging.info("email should have been sent now")
     
@@ -185,10 +201,14 @@ if 0 < int(data['totalResults']):
     message.attach(MIMEText(email_body, "html"))
     
     # Send the email
-    with smtplib.SMTP_SSL("smtp.zoho.com", port=465) as connection:
+    with smtplib.SMTP_SSL("smtp.zoho.com", port=465, timeout=30) as connection:
         connection.login(user=my_email, password=app_password)
         try:
             connection.send_message(message)
             print("Email sent successfully")
-        except Exception as e:
-            print(f"Error sending email: {e}")
+       except smtplib.SMTPAuthenticationError as e:
+        print(f"Authentication error: {e}")
+        logging.error(f"SMTP Authentication Error: {e}")
+    except Exception as e:
+        print(f"Connection error: {type(e).__name__}: {e}")
+        logging.error(f"SMTP Connection Error: {type(e).__name__}: {e}")
