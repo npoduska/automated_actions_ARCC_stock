@@ -21,7 +21,7 @@ NEWS_API_KEY= os.environ.get('NEWS_API_KEY')
 
 #Verify that environment variables are being loaded
 print(f"Email: {my_email}")
-print(f"Password: {'*' * len(app_password) if app_password else 'Not set'}")
+print(f"Password: {(app_password) if app_password else 'Not set'}")
 
 print("check your email now.")
 # Then use logging instead of print throughout your script
