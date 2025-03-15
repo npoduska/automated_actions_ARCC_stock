@@ -92,7 +92,10 @@ if latest_low_price < 23 or volume_change > 70:
     print("Connecting to Zoho SMTP server via SSL...")
 
     try:
-        connection = smtplib.SMTP_SSL("smtp.zoho.com", port=465, timeout=30)
+        with smtplib.SMTP("smtp.zoho.com", port=587, timeout=30) as connection:
+            connection.starttls()
+            connection.login(user=my_email, password=app_password)
+        # connection = smtplib.SMTP_SSL("smtp.zoho.com", port=465, timeout=30)
         print("Connected to SMTP server")
         connection.login(user=my_email, password=app_password)
         print("Login successful")
@@ -207,8 +210,12 @@ if latest_low_price < 23 or volume_change > 70:
         
         # Send the email
         try:
-            with smtplib.SMTP_SSL("smtp.zoho.com", port=465, timeout=30) as connection:
+            with smtplib.SMTP("smtp.zoho.com", port=587, timeout=30) as connection:
+                connection.starttls()
                 connection.login(user=my_email, password=app_password)
+                # connection = smtplib.SMTP_SSL("smtp.zoho.com", port=465, timeout=30)
+            # with smtplib.SMTP_SSL("smtp.zoho.com", port=465, timeout=30) as connection:
+            #     connection.login(user=my_email, password=app_password)
                 connection.send_message(message)
                 print("HTML email sent successfully")
         except smtplib.SMTPAuthenticationError as e:
