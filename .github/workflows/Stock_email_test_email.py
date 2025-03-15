@@ -72,8 +72,10 @@ if should_alert:
                 f.write(f"{article['description']}\n")
     
     # Set output for GitHub Actions
-    print("::set-output name=send_alert::true")
-    logging.info("Alert condition met, email content prepared")
+    with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+        f.write("send_alert=true\n")
+        logging.info("Alert condition met, email content prepared")
 else:
-    print("::set-output name=send_alert::false")
-    logging.info("No alert conditions met")
+    with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+        f.write("send_alert=false\n")
+        logging.info("No alert conditions met")
