@@ -3,7 +3,6 @@ on:
   schedule:
     - cron: '0 10 * * 1-6' # Run every day at 10am, monday-saturday
   workflow_dispatch:
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -43,6 +42,7 @@ jobs:
       
       - name: Create GitHub Issue for Stock Alert
         if: steps.stock-check.outputs.alert_triggered == 'true'
+        id: create-issue
         run: |
           TODAY=$(date '+%Y-%m-%d')
           REPO="${GITHUB_REPOSITORY}"
@@ -54,14 +54,23 @@ jobs:
           # Create JSON payload for the API request
           JSON_PAYLOAD="{\"title\":\"${TITLE}\",\"body\":\"${ESCAPED_BODY}\",\"labels\":[\"stock-alert\",\"automated\"]}"
           
-          # Create the issue using curl
-          curl -X POST \
+          # Create the issue using curl and capture the response
+          RESPONSE=$(curl -s -X POST \
             -H "Authorization: token ${{ secrets.REPO_PAT }}" \
             -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/repos/${REPO}/issues \
-            -d "${JSON_PAYLOAD}"
+            -d "${JSON_PAYLOAD}")
           
-          echo "Created GitHub issue for stock alert"
+          # Extract the issue number and URL from the response
+          ISSUE_NUMBER=$(echo $RESPONSE | jq -r '.number')
+          ISSUE_URL=$(echo $RESPONSE | jq -r '.html_url')
+          
+          # Set output variables
+          echo "issue_number=${ISSUE_NUMBER}" >> $GITHUB_OUTPUT
+          echo "issue_url=${ISSUE_URL}" >> $GITHUB_OUTPUT
+          
+          echo "Created GitHub issue #${ISSUE_NUMBER} for stock alert"
+          echo "Issue URL: ${ISSUE_URL}"
       
       - name: Create alert file
         if: steps.stock-check.outputs.alert_triggered == 'true'
@@ -70,12 +79,41 @@ jobs:
           echo "# Stock Alert: ARCC - ${TODAY}" > stock_alert.md
           echo "" >> stock_alert.md
           echo "${{ steps.stock-check.outputs.alert_message }}" >> stock_alert.md
+          
+          # Add issue link to the alert file
+          if [ -n "${{ steps.create-issue.outputs.issue_url }}" ]; then
+            echo "" >> stock_alert.md
+            echo "View this issue on GitHub: [${{ steps.create-issue.outputs.issue_number }}](${{ steps.create-issue.outputs.issue_url }})" >> stock_alert.md
+          fi
       
       - name: Create alert summary
         if: steps.stock-check.outputs.alert_triggered == 'true'
         run: |
           echo "## Stock Alert triggered on $(date '+%Y-%m-%d')" >> $GITHUB_STEP_SUMMARY
           echo "${{ steps.stock-check.outputs.alert_message }}" >> $GITHUB_STEP_SUMMARY
+          
+          # Add issue link to the summary
+          if [ -n "${{ steps.create-issue.outputs.issue_url }}" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "GitHub Issue: [${{ steps.create-issue.outputs.issue_number }}](${{ steps.create-issue.outputs.issue_url }})" >> $GITHUB_STEP_SUMMARY
+          fi
+      
+      - name: Send notification with issue details
+        if: steps.stock-check.outputs.alert_triggered == 'true' && steps.create-issue.outputs.issue_url != ''
+        uses: peter-evans/create-or-update-comment@v2
+        with:
+          issue-number: ${{ steps.create-issue.outputs.issue_number }}
+          body: |
+            Alert details have been posted to this issue. You can view the full details here.
+            
+            <details>
+            <summary>View Alert Details</summary>
+            
+            ```
+            ${{ steps.stock-check.outputs.alert_message }}
+            ```
+            
+            </details>
       
       - name: Upload alert file
         if: steps.stock-check.outputs.alert_triggered == 'true'
