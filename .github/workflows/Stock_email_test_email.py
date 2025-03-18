@@ -29,13 +29,14 @@ logging.info(f"Raw data for {first_date}: {json.dumps(first_values)}")
 low_prices = []
 volume = []
 for date, values in stock_data['Time Series (Daily)'].items():
-    low_prices.append(float(values['3. low']))
+    low_price = float(values['3. low'])
+    low_prices.append(low_price)
     volume.append(float(values['5. volume']))
-
+    
     # Log the first few prices for debugging
     if len(low_prices) <= 3:
         logging.info(f"Date: {date}, Raw low price: {values['3. low']}, Parsed: {low_price}")
-    
+  
 latest_low_price = (low_prices[0])
 latest_volume = int(volume[0])
 formatted_low_prices = [f"${(price):.2f}" for price in low_prices]
