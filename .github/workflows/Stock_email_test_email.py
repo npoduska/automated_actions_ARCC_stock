@@ -20,16 +20,30 @@ url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={STO
 r = requests.get(url)
 stock_data = r.json()
 
+# Log the raw data for the first day to debug
+first_date = list(stock_data['Time Series (Daily)'].keys())[0]
+first_values = stock_data['Time Series (Daily)'][first_date]
+logging.info(f"Raw data for {first_date}: {json.dumps(first_values)}")
+
 # Process stock data
 low_prices = []
 volume = []
 for date, values in stock_data['Time Series (Daily)'].items():
     low_prices.append(float(values['3. low']))
     volume.append(float(values['5. volume']))
+
+    # Log the first few prices for debugging
+    if len(low_prices) <= 3:
+        logging.info(f"Date: {date}, Raw low price: {values['3. low']}, Parsed: {low_price}")
     
 latest_low_price = (low_prices[0])
 latest_volume = int(volume[0])
 formatted_low_prices = [f"${(price):.2f}" for price in low_prices]
+
+# Fix: Ensure prices are stored correctly before formatting
+logging.info(f"First 3 low prices before formatting: {low_prices[:3]}")
+#After formatting
+logging.info(f"First 3 formatted prices: {formatted_low_prices[:3]}")
 
 # Calculate averages
 short_sma = sum(low_prices[:20]) / 20
