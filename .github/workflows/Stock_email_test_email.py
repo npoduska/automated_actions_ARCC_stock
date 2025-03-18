@@ -27,9 +27,9 @@ for date, values in stock_data['Time Series (Daily)'].items():
     low_prices.append(float(values['3. low']))
     volume.append(float(values['5. volume']))
     
-latest_low_price = int(low_prices[0])
+latest_low_price = (low_prices[0])
 latest_volume = int(volume[0])
-formatted_low_prices = [f"${float(price):.2f}" for price in low_prices]
+formatted_low_prices = [f"${(price):.2f}" for price in low_prices]
 
 # Calculate averages
 short_sma = sum(low_prices[:20]) / 20
