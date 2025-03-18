@@ -6,6 +6,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -43,29 +46,25 @@ jobs:
       - name: Create GitHub Issue for Stock Alert
         if: steps.stock-check.outputs.alert_triggered == 'true'
         id: create-issue
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TODAY=$(date '+%Y-%m-%d')
           REPO="${GITHUB_REPOSITORY}"
           TITLE="Stock Alert: ARCC - ${TODAY}"
           
-          # Escape newlines and quotes in alert message for JSON
-          ESCAPED_BODY=$(echo '${{ steps.stock-check.outputs.alert_message }}' | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
+          # Create a temporary file with the exact content for the issue body
+          echo "${{ steps.stock-check.outputs.alert_message }}" > issue_body.txt
           
-          # Create JSON payload for the API request
-          JSON_PAYLOAD="{\"title\":\"${TITLE}\",\"body\":\"${ESCAPED_BODY}\",\"labels\":[\"stock-alert\",\"automated\"]}"
+          # Create the issue using gh CLI (simpler and more reliable than curl)
+          ISSUE_URL=$(gh issue create \
+            --title "${TITLE}" \
+            --body-file issue_body.txt \
+            --label "stock-alert,automated" \
+            --repo "${REPO}")
           
-          # Create the issue using curl and capture the response
-          RESPONSE=$(curl -s -X POST \
-            -H "Authorization: token ${{ secrets.REPO_PAT }}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/${REPO}/issues \
-            -d "${JSON_PAYLOAD}")
+          ISSUE_NUMBER=$(echo $ISSUE_URL | rev | cut -d'/' -f1 | rev)
           
-          # Extract the issue number and URL from the response
-          ISSUE_NUMBER=$(echo $RESPONSE | jq -r '.number')
-          ISSUE_URL=$(echo $RESPONSE | jq -r '.html_url')
-          
-          # Set output variables
           echo "issue_number=${ISSUE_NUMBER}" >> $GITHUB_OUTPUT
           echo "issue_url=${ISSUE_URL}" >> $GITHUB_OUTPUT
           
@@ -97,23 +96,6 @@ jobs:
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "GitHub Issue: [${{ steps.create-issue.outputs.issue_number }}](${{ steps.create-issue.outputs.issue_url }})" >> $GITHUB_STEP_SUMMARY
           fi
-      
-      - name: Send notification with issue details
-        if: steps.stock-check.outputs.alert_triggered == 'true' && steps.create-issue.outputs.issue_url != ''
-        uses: peter-evans/create-or-update-comment@v2
-        with:
-          issue-number: ${{ steps.create-issue.outputs.issue_number }}
-          body: |
-            Alert details have been posted to this issue. You can view the full details here.
-            
-            <details>
-            <summary>View Alert Details</summary>
-            
-            ```
-            ${{ steps.stock-check.outputs.alert_message }}
-            ```
-            
-            </details>
       
       - name: Upload alert file
         if: steps.stock-check.outputs.alert_triggered == 'true'
