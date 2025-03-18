@@ -1,6 +1,7 @@
 import requests
 import os
 import logging
+import json
 from datetime import *
 
 # Setup logging
@@ -80,9 +81,31 @@ if should_alert:
             alert_message += f"Source: {article['source']['name']}\n"
             alert_message += f"{article['description']}\n"
     
+    # Create a markdown formatted version for better GitHub display
+    md_formatted_message = alert_message.replace('\n', '\n\n')
+    
+    # Create a detailed JSON output for easier parsing
+    alert_details = {
+        "stock": STOCK,
+        "company": COMPANY_NAME,
+        "current_price": formatted_low_prices[0],
+        "recent_lows": formatted_low_prices[:3],
+        "trend": trending_condition,
+        "volume_change_percent": f"{volume_change:.2f}%",
+        "alerts": {
+            "price": price_alert,
+            "trend": trend_alert,
+            "volume": volume_alert
+        },
+        "sma_20": f"${short_sma:.2f}",
+        "sma_50": f"${long_sma:.2f}"
+    }
+    
     # Set GitHub Actions output
     print(f"::set-output name=alert_triggered::true")
     print(f"::set-output name=alert_message::{alert_message}")
+    print(f"::set-output name=alert_details::{json.dumps(alert_details)}")
+    print(f"::set-output name=markdown_message::{md_formatted_message}")
     print(f"::warning::{STOCK} Alert - {', '.join(condition for condition, triggered in zip(['Price', 'Trend', 'Volume'], [price_alert, trend_alert, volume_alert]) if triggered)}")
     
     # Log the alert
