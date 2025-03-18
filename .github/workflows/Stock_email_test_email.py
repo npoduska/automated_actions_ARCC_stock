@@ -50,20 +50,20 @@ volume_alert = volume_change > 70
 # If any alert condition is met, send alert
 should_alert = price_alert or trend_alert or volume_alert
 
-# Prepare alert message
-alert_message = f"Stock Alert for {STOCK} ({COMPANY_NAME})\n\n"
-alert_message += f"Current Price: {formatted_low_prices[0]}\n"
-alert_message += f"The past 3 trading day lows are: {', '.join(formatted_low_prices[:3])}\n"
-alert_message += f"Trend: {trending_condition}\n"
-alert_message += f"Volume Change: {volume_change:.2f}%\n\n"
+# Create alert message with markdown formatting for better display in GitHub
+alert_message = f"## Stock Alert for {STOCK} ({COMPANY_NAME})\n\n"
+alert_message += f"**Current Price:** {formatted_low_prices[0]}\n\n"
+alert_message += f"**Past 3 trading day lows:** {', '.join(formatted_low_prices[:3])}\n\n"
+alert_message += f"**Trend:** {trending_condition}\n\n"
+alert_message += f"**Volume Change:** {volume_change:.2f}%\n\n"
 
 # Add reason for alert if conditions are met
 if should_alert:
-    alert_message += "Alert triggered because:\n"
+    alert_message += "### Alert triggered because:\n\n"
     if price_alert:
-        alert_message += f"- Price fell below threshold of $23.00 (current: {formatted_low_prices[0]})\n"
+        alert_message += f"- Price fell below threshold of $23.00 (current: {formatted_low_prices[0]})\n\n"
     if trend_alert:
-        alert_message += f"- Stock is trending downward (20-day SMA: ${short_sma:.2f}, 50-day SMA: ${long_sma:.2f})\n"
+        alert_message += f"- Stock is trending downward (20-day SMA: ${short_sma:.2f}, 50-day SMA: ${long_sma:.2f})\n\n"
     if volume_alert:
         alert_message += f"- Unusual trading volume detected ({volume_change:.2f}% above average)\n\n"
     
@@ -74,38 +74,21 @@ if should_alert:
     
     # Add news if available
     if int(data.get('totalResults', 0)) > 0:
-        alert_message += "Recent News:\n"
+        alert_message += "### Recent News:\n\n"
         articles = data['articles'][:3]  # Get up to 3 articles
         for i, article in enumerate(articles, 1):
-            alert_message += f"\n{i}. {article['title']}\n"
-            alert_message += f"Source: {article['source']['name']}\n"
-            alert_message += f"{article['description']}\n"
-    
-    # Create a markdown formatted version for better GitHub display
-    md_formatted_message = alert_message.replace('\n', '\n\n')
-    
-    # Create a detailed JSON output for easier parsing
-    alert_details = {
-        "stock": STOCK,
-        "company": COMPANY_NAME,
-        "current_price": formatted_low_prices[0],
-        "recent_lows": formatted_low_prices[:3],
-        "trend": trending_condition,
-        "volume_change_percent": f"{volume_change:.2f}%",
-        "alerts": {
-            "price": price_alert,
-            "trend": trend_alert,
-            "volume": volume_alert
-        },
-        "sma_20": f"${short_sma:.2f}",
-        "sma_50": f"${long_sma:.2f}"
-    }
+            alert_message += f"{i}. **{article['title']}**\n\n"
+            alert_message += f"   Source: {article['source']['name']}\n\n"
+            alert_message += f"   {article['description']}\n\n"
     
     # Set GitHub Actions output
-    print(f"::set-output name=alert_triggered::true")
-    print(f"::set-output name=alert_message::{alert_message}")
-    print(f"::set-output name=alert_details::{json.dumps(alert_details)}")
-    print(f"::set-output name=markdown_message::{md_formatted_message}")
+    with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+        f.write(f"alert_triggered=true\n")
+        # Use delimiter for multiline output (new GitHub Actions syntax)
+        f.write("alert_message<<EOF\n")
+        f.write(f"{alert_message}\n")
+        f.write("EOF\n")
+    
     print(f"::warning::{STOCK} Alert - {', '.join(condition for condition, triggered in zip(['Price', 'Trend', 'Volume'], [price_alert, trend_alert, volume_alert]) if triggered)}")
     
     # Log the alert
@@ -113,8 +96,10 @@ if should_alert:
     logging.info(alert_message)
 else:
     # Set GitHub Actions output - no alert
-    print(f"::set-output name=alert_triggered::false")
-    print(f"::set-output name=alert_message::No alert conditions met for {STOCK}")
+    with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+        f.write(f"alert_triggered=false\n")
+        f.write("alert_message=No alert conditions met for {STOCK}\n")
+    
     print(f"::notice::No alert conditions met for {STOCK}")
     
     # Log the non-alert
