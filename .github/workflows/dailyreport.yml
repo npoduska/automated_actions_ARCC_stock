@@ -1,7 +1,7 @@
 name: daily-report
 on:
   schedule:
-    - cron: '0 16 * * 1-5'  # Runs at 4 PM UTC every weekday (adjust as needed)
+    - cron: '0 10 * * 1-6' # Run every day at 10am, monday-saturday
   workflow_dispatch:
 
 jobs:
@@ -41,35 +41,27 @@ jobs:
           NEWS_API_KEY: ${{secrets.NEWS_API_KEY}}
         run: python .github/workflows/Stock_email_test_email.py
       
-      - name: Create GitHub Issue for Stock Alert
+      - name: Create alert file
         if: steps.stock-check.outputs.alert_triggered == 'true'
-        uses: actions/github-script@v6
-        with:
-          github-token: ${{secrets.GITHUB_TOKEN}}
-          script: |
-            const alertMessage = `${{ steps.stock-check.outputs.alert_message }}`;
-            const today = new Date().toISOString().split('T')[0];
-            await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `Stock Alert: ARCC - ${today}`,
-              body: alertMessage,
-              labels: ['stock-alert', 'automated']
-            });
-            console.log('Created GitHub issue for stock alert');
+        run: |
+          TODAY=$(date '+%Y-%m-%d')
+          echo "# Stock Alert: ARCC - ${TODAY}" > stock_alert.md
+          echo "" >> stock_alert.md
+          echo "${{ steps.stock-check.outputs.alert_message }}" >> stock_alert.md
       
-      - name: Send alert notification
+      - name: Create alert summary
         if: steps.stock-check.outputs.alert_triggered == 'true'
-        uses: dawidd6/action-send-mail@v3
+        run: |
+          echo "## Stock Alert triggered on $(date '+%Y-%m-%d')" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.stock-check.outputs.alert_message }}" >> $GITHUB_STEP_SUMMARY
+      
+      - name: Upload alert file
+        if: steps.stock-check.outputs.alert_triggered == 'true'
+        uses: actions/upload-artifact@v4
         with:
-          server_address: smtp.gmail.com
-          server_port: 587
-          username: ${{ secrets.MY_EMAIL }}
-          password: ${{ secrets.APP_EMAIL_PASSWORD }}
-          subject: "Stock Alert: ARCC Price Update"
-          body: ${{ steps.stock-check.outputs.alert_message }}
-          to: ${{ secrets.TO_EMAIL }}
-          from: Stock Alert System
+          name: stock-alert-${{ github.run_id }}
+          path: stock_alert.md
+          retention-days: 90
       
       - name: Upload log file
         uses: actions/upload-artifact@v4
